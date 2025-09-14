@@ -68,6 +68,7 @@ web_modules/
 # dotenv environment variable files
 .env
 .env.*
+.env.local
 !.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
@@ -107,7 +108,9 @@ dist
 # Docusaurus cache and generated files
 .docusaurus
 
-# Serverless directories
+# Serverless Framework
+# The .serverless directory contains the packaged code for your service.
+# It's recommended to ignore this directory.
 .serverless/
 
 # FuseBox cache
