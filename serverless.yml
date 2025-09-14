@@ -1,19 +1,12 @@
-# serverless.yml
-
-# Configuración del servicio
 service: crediya-loan-validation
-# app y org son opcionales; puedes configurarlos según tu dashboard de Serverless
-# app: tu-app
-# org: tu-org
 
-# Versión del framework
 frameworkVersion: '4'
 
 provider:
   name: aws
   runtime: nodejs22.x
   architecture: arm64
-  region: us-east-1 # O la región que prefieras
+  region: us-east-1
   environment:
     RESULT_QUEUE_URL: https://sqs.us-east-1.amazonaws.com/520236304018/QueueCrediyaResponseAppValidate
   iam:
@@ -26,7 +19,8 @@ provider:
             - "sqs:DeleteMessage"
             - "sqs:GetQueueAttributes"
           Resource:
-            - "arn:aws:sqs:us-east-1:520236304018:SQSQueue1"
+            - "arn:aws:sqs:us-east-1:520236304018:QueueCrediyaResponseAppValidate"
+            - "arn:aws:sqs:us-east-1:520236304018:QueueCrediyaApplicationValidate"
         - Effect: "Allow"
           Action:
             - "dynamodb:*"
@@ -53,17 +47,6 @@ functions:
     timeout: 3
     events:
       - sqs:
-          arn:
-            Fn::GetAtt:
-              - SQSQueue1
-              - Arn
+          arn: arn:aws:sqs:us-east-1:520236304018:QueueCrediyaApplicationValidate
           batchSize: 3
           enabled: true
-
-resources:
-  Resources:
-    SQSQueue1:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: SQSQueue1
-        SqsManagedSseEnabled: true
