@@ -1,0 +1,69 @@
+# serverless.yml
+
+# Configuración del servicio
+service: crediya-loan-validation
+# app y org son opcionales; puedes configurarlos según tu dashboard de Serverless
+# app: tu-app
+# org: tu-org
+
+# Versión del framework
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  architecture: arm64
+  region: us-east-1 # O la región que prefieras
+  environment:
+    RESULT_QUEUE_URL: https://sqs.us-east-1.amazonaws.com/520236304018/QueueCrediyaResponseAppValidate
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "sqs:SendMessage"
+            - "sqs:ReceiveMessage"
+            - "sqs:DeleteMessage"
+            - "sqs:GetQueueAttributes"
+          Resource:
+            - "arn:aws:sqs:us-east-1:520236304018:SQSQueue1"
+        - Effect: "Allow"
+          Action:
+            - "dynamodb:*"
+            - "dax:*"
+          Resource: "arn:aws:dynamodb:us-east-1:520236304018:table/*"
+        - Effect: "Allow"
+          Action:
+            - "logs:CreateLogGroup"
+            - "logs:CreateLogStream"
+            - "logs:PutLogEvents"
+          Resource: "arn:aws:logs:us-east-1:520236304018:log-group:/aws/lambda/creadiya-loan-validation-dev*:*"
+        - Effect: "Allow"
+          Action:
+            - "ec2:CreateNetworkInterface"
+            - "ec2:DescribeNetworkInterfaces"
+            - "ec2:DeleteNetworkInterface"
+          Resource: "*"
+
+functions:
+  ValidateLoanApplication:
+    handler: index.handler
+    description: 'Valida las solicitudes de préstamo de CrediYa.'
+    memorySize: 128
+    timeout: 3
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - SQSQueue1
+              - Arn
+          batchSize: 3
+          enabled: true
+
+resources:
+  Resources:
+    SQSQueue1:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: SQSQueue1
+        SqsManagedSseEnabled: true
