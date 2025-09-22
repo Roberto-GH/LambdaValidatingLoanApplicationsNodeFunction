@@ -1,0 +1,55 @@
+service: crediya-loan-validation
+
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  architecture: arm64
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    RESULT_QUEUE_URL: ${ssm:/creadiya/application-api/sqs-validation-response-queue-url/${self:provider.stage}}
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "sqs:SendMessage"
+            - "sqs:ReceiveMessage"
+            - "sqs:DeleteMessage"
+            - "sqs:GetQueueAttributes"
+          Resource:
+            - ${ssm:/creadiya/application-api/sqs-validation-response-queue-arn/${self:provider.stage}}
+            - ${ssm:/creadiya/application-api/sqs-validation-queue-arn/${self:provider.stage}}
+        - Effect: "Allow"
+          Action:
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Query"
+            - "dynamodb:Scan"
+          Resource:
+            - ${ssm:/creadiya/reports-api/reports-table-arn/${self:provider.stage}}
+            - ${ssm:/creadiya/reports-api/reports-summary-table-arn/${self:provider.stage}}
+            - !Sub "${ssm:/creadiya/reports-api/reports-table-arn/${self:provider.stage}}/index/*"
+            - !Sub "${ssm:/creadiya/reports-api/reports-summary-table-arn/${self:provider.stage}}/index/*"
+        - Effect: "Allow"
+          Action:
+            - "logs:CreateLogGroup"
+            - "logs:CreateLogStream"
+            - "logs:PutLogEvents"
+          Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/creadiya-loan-validation-${self:provider.stage}*:*"
+        
+functions:
+  ValidateLoanApplication:
+    handler: index.handler
+    description: 'Valida las solicitudes de préstamo de CrediYa.'
+    memorySize: 128
+    timeout: 3
+    events:
+      - sqs:
+          arn: ${ssm:/creadiya/application-api/sqs-validation-queue-arn/${self:provider.stage}}
+          batchSize: 3
+          enabled: true
